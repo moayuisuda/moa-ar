@@ -1,5 +1,13 @@
 // Create a marker root object to keep track of the marker.
 //
+var setProjectionMatrix = function(projectionMatrix, value) {
+  if (typeof projectionMatrix.elements.set === "function") {
+    projectionMatrix.elements.set(value);
+  } else {
+    projectionMatrix.elements = [].slice.call(value);
+  }
+};
+
 function successFunc(stream) {
   var video = document.querySelector("video");
   // 旧的浏览器可能没有srcObject
@@ -34,20 +42,19 @@ function successFunc(stream) {
         if (ev.data.marker.idPatt === id) {
           // The marker was found in this video frame, make it visible.
           markerRoot.visible = true;
-          console.log(markerRoot);
 
           // Copy the marker transformation matrix to the markerRoot matrix.
-          markerRoot.matrix.set(ev.data.matrix);
+          setProjectionMatrix(markerRoot.matrix, ev.data.matrixGL_RH);
         }
       });
 
       // Add a cube to the marker root.
       //
-      markerRoot.add(new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshNormalMaterial()));
+      markerRoot.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshNormalMaterial()));
 
       // Create renderer with a size that matches the video.
       //
-      var renderer = new THREE.WebGLRenderer({ antialias: true });
+      var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(video.videoWidth, video.videoHeight);
       document.body.appendChild(renderer.domElement);
 
@@ -68,8 +75,8 @@ function successFunc(stream) {
 
       // Set the camera matrix to the AR camera matrix.
       //
-      console.log(JSON.stringify(camera.matrix));
-      camera.matrix.set(arController.getCameraMatrix());
+      console.log(camera.matrix, camera.projectionMatrix);
+      setProjectionMatrix(camera.projectionMatrix, this.getCameraMatrix());
       console.log(JSON.stringify(camera.matrix));
 
       // On each frame, detect markers, update their positions and
@@ -79,7 +86,7 @@ function successFunc(stream) {
         requestAnimationFrame(tick);
  
         // Hide the marker, we don't know if it's visible in this frame.
-        // markerRoot.visible = false;
+        markerRoot.visible = false;
 
         // Process detects markers in the video frame and sends
         // getMarker events to the event listeners.
@@ -119,10 +126,10 @@ if (navigator.mediaDevices.getUserMedia === undefined) {
 
 navigator.mediaDevices
   .getUserMedia({
-		audio: true, 
-		video: { facingMode: { exact: "environment" } }
+		audio: false, 
+		video: { facingMode: { ideal: "environment" } }
   })
   .then(successFunc)
   .catch(function (err) {
-    console.log(err.name + ": " + err.message);
+    console.log(err)
   });
