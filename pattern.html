@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <title>Pattern marker example with Three.js</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        /* text-align: center; */
+        overflow-x: hidden;
+      }
+      .portrait canvas {
+        transform-origin: 0 0;
+        transform: rotate(-90deg) translateX(-100%);
+      }
+      .desktop canvas {
+        transform: scale(-1, 1);
+      }
+    </style>
+  </head>
+  <body>
+    <!--<script async src="../build/artoolkitNft.min.js"></script>-->
+    <!-- <script async src="../build/artoolkit.debug.js"></script> -->
+    <script src="./third/artoolkit.min.js"></script>
+    <!-- <script src="./third/artoolkit.api.js"></script>
+    <script src="./third/artoolkit.debug.js"></script> -->
+    <!-- <script src="./third/ar.three.js"></script> -->
+    <!-- <script src="./third/three.min.js"></script> -->
+    <script src="./dist/pattern.js"></script>
+  </body>
+</html>

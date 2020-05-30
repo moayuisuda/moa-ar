@@ -50,7 +50,9 @@ function successFunc(stream) {
 
       // Add a cube to the marker root.
       //
-      markerRoot.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshNormalMaterial()));
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshNormalMaterial())
+      mesh.position.z = 0.5;
+      markerRoot.add(mesh);
 
       // Create renderer with a size that matches the video.
       //
@@ -127,7 +129,7 @@ if (navigator.mediaDevices.getUserMedia === undefined) {
 navigator.mediaDevices
   .getUserMedia({
 		audio: false, 
-		video: { facingMode: { ideal: "environment" } }
+		video: { facingMode: { ideal: "environment" }, width: 640, height: 480 }
   })
   .then(successFunc)
   .catch(function (err) {
