@@ -57,8 +57,8 @@ function successFunc(stream) {
       // Create renderer with a size that matches the video.
       //
       var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(video.videoWidth, video.videoHeight);
-      document.body.appendChild(renderer.domElement);
+      // renderer.setSize(video.videoWidth, video.videoHeight);
+      // document.body.appendChild(renderer.domElement);
 
       // Set up the scene and camera.
       //

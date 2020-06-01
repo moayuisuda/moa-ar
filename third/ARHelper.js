@@ -1,53 +1,24 @@
 /* THREE.js ARToolKit integration */
 import * as THREE from "three";
 
-const extend = function () {
-  /**
-			Helper for setting up a Three.js AR scene using the device camera as input.
-			Pass in the maximum dimensions of the video you want to process and onSuccess and onError callbacks.
-
-			On a successful initialization, the onSuccess callback is called with an ThreeARScene object.
-			The ThreeARScene object contains two THREE.js scenes (one for the video image and other for the 3D scene)
-			and a couple of helper functions for doing video frame processing and AR rendering.
-
-			Here's the structure of the ThreeARScene object:
-			{
-				scene: THREE.Scene, // The 3D scene. Put your AR objects here.
-				camera: THREE.Camera, // The 3D scene camera.
-
-				arController: ARController,
-
-				video: HTMLVideoElement, // The userMedia video element.
-
-				videoScene: THREE.Scene, // The userMedia video image scene. Shows the video feed.
-				videoCamera: THREE.Camera, // Camera for the userMedia video scene.
-
-				process: function(), // Process the current video frame and update the markers in the scene.
-				renderOn: function( THREE.WebGLRenderer ) // Render the AR scene and video background on the given Three.js renderer.
-			}
-
-			You should use the arScene.video.videoWidth and arScene.video.videoHeight to set the width and height of your renderer.
-
-			In your frame loop, use arScene.process() and arScene.renderOn(renderer) to do frame processing and 3D rendering, respectively.
-
-			@param {number} width - The maximum width of the userMedia video to request.
-			@param {number} height - The maximum height of the userMedia video to request.
-			@param {function} onSuccess - Called on successful initialization with an ThreeARScene object.
-			@param {function} onError - Called if the initialization fails with the error encountered.
-		*/
-  ARController.getUserMediaThreeScene = function (configuration) {
-    var obj = {};
-    for (var i in configuration) {
-      obj[i] = configuration[i];
+const extendARController = function () {
+  ARController.getUserMediaThreeScene = function (userConfig) {
+    var config = {};
+    for (var i in userConfig) {
+      config[i] = userConfig[i];
     }
-    var onSuccess = configuration.onSuccess;
+    var onSuccess = userConfig.onSuccess;
 
-    obj.onSuccess = function (arController, arCameraParam) {
-      var scenes = arController.createThreeScene();
-      onSuccess(scenes, arController, arCameraParam);
+    // artoolkit的onSucess方法
+    config.onSuccess = function (arController, arCameraParam) {
+      var arScene = arController.createThreeScene();
+
+      // 用户定义的onSucess方法
+      onSuccess(arScene, arController, arCameraParam);
     };
 
-    var video = this.getUserMediaARController(obj);
+    // config作为artoolkit原生函数的配置参数传入
+    var video = this.getUserMediaARController(config);
     return video;
   };
 
@@ -85,28 +56,31 @@ const extend = function () {
 
     // To display the video, first create a texture from it.
     document.body.appendChild(video);
-    var videoTex = new THREE.Texture(video);
+    video.style.position = 'absolute';
 
-    videoTex.minFilter = THREE.LinearFilter;
-    videoTex.flipY = false;
 
-    // Then create a plane textured with the video.
-    var plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide }));
+    // var videoTex = new THREE.Texture(video);
 
-    // The video plane shouldn't care about the z-buffer.
-    plane.material.depthTest = false;
-    plane.material.depthWrite = false;
+    // videoTex.minFilter = THREE.LinearFilter;
+    // videoTex.flipY = false;
 
-    // Create a camera and a scene for the video plane and
-    // add the camera and the video plane to the scene.
-    var videoCamera = new THREE.OrthographicCamera(-1, 1, -1, 1, -1, 1);
-    var videoScene = new THREE.Scene();
-    videoScene.add(plane);
-    videoScene.add(videoCamera);
+    // // Then create a plane textured with the video.
+    // var plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide }));
 
-    if (this.orientation === "portrait") {
-      plane.rotation.z = Math.PI / 2;
-    }
+    // // The video plane shouldn't care about the z-buffer.
+    // plane.material.depthTest = false;
+    // plane.material.depthWrite = false;
+
+    // // Create a camera and a scene for the video plane and
+    // // add the camera and the video plane to the scene.
+    // var videoCamera = new THREE.OrthographicCamera(-1, 1, -1, 1, -1, 1);
+    // var videoScene = new THREE.Scene();
+    // videoScene.add(plane);
+    // videoScene.add(videoCamera);
+
+    // if (this.orientation === "portrait") {
+    //   plane.rotation.z = Math.PI / 2;
+    // }
 
     var scene = new THREE.Scene();
     var camera = new THREE.Camera();
@@ -119,9 +93,9 @@ const extend = function () {
 
     return {
       scene: scene,
-      videoScene: videoScene,
+      // videoScene: videoScene,
       camera: camera,
-      videoCamera: videoCamera,
+      // videoCamera: videoCamera,
 
       arController: this,
 
@@ -145,18 +119,9 @@ const extend = function () {
             }
           }
         }
+
+        // 调用原生的process方法，检测标记，检测到会触发getMarker事件
         self.process(video);
-      },
-
-      renderOn: function (renderer) {
-        videoTex.needsUpdate = true;
-
-        var ac = renderer.autoClear;
-        renderer.autoClear = false;
-        renderer.clear();
-        renderer.render(this.videoScene, this.videoCamera);
-        renderer.render(this.scene, this.camera);
-        renderer.autoClear = ac;
       },
     };
   };
@@ -380,4 +345,4 @@ var setProjectionMatrix = function (projectionMatrix, value) {
   }
 };
 
-export default extend;
+export default extendARController;
