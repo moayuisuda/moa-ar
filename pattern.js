@@ -11,9 +11,10 @@ function init() {
     onSuccess: function (arScene, arController) {
       document.body.className = arController.orientation;
 
-      alert(JSON.stringify({ w: window.innerWidth, h: window.innerHeight }), (window.innerWidth < window.innerHeight));
+      alert(JSON.stringify({ w: window.innerWidth, h: window.innerHeight }));
       var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       if (window.innerWidth < window.innerHeight) {
+        alert('phone');
         const w = window.innerWidth;
         const h = (window.innerWidth / arController.videoWidth) * arController.videoHeight;
         renderer.setSize(w, h);
