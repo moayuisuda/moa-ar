@@ -1,119 +1,86 @@
 /* THREE.js ARToolKit integration */
 import * as THREE from "three";
 
+// 主函数同来拓展artoolkit的ARController方法
 const extendARController = function () {
   ARController.getUserMediaThreeScene = function (userConfig) {
-    var config = {};
-    for (var i in userConfig) {
+    let config = {};
+    for (let i in userConfig) {
       config[i] = userConfig[i];
     }
-    var onSuccess = userConfig.onSuccess;
+    let onSuccess = userConfig.onSuccess;
 
     // artoolkit的onSucess方法
     config.onSuccess = function (arController, arCameraParam) {
-      var arScene = arController.createThreeScene();
+      let arScene = arController.createThreeScene();
 
       // 用户定义的onSucess方法
       onSuccess(arScene, arController, arCameraParam);
     };
 
     // config作为artoolkit原生函数的配置参数传入
-    var video = this.getUserMediaARController(config);
+    let video = this.getUserMediaARController(config);
     return video;
   };
 
-  /**
-			Creates a Three.js scene for use with this ARController.
-
-			Returns a ThreeARScene object that contains two THREE.js scenes (one for the video image and other for the 3D scene)
-			and a couple of helper functions for doing video frame processing and AR rendering.
-
-			Here's the structure of the ThreeARScene object:
-			{
-				scene: THREE.Scene, // The 3D scene. Put your AR objects here.
-				camera: THREE.Camera, // The 3D scene camera.
-
-				arController: ARController,
-
-				video: HTMLVideoElement, // The userMedia video element.
-
-				videoScene: THREE.Scene, // The userMedia video image scene. Shows the video feed.
-				videoCamera: THREE.Camera, // Camera for the userMedia video scene.
-
-				process: function(), // Process the current video frame and update the markers in the scene.
-				renderOn: function( THREE.WebGLRenderer ) // Render the AR scene and video background on the given Three.js renderer.
-			}
-
-			You should use the arScene.video.videoWidth and arScene.video.videoHeight to set the width and height of your renderer.
-
-			In your frame loop, use arScene.process() and arScene.renderOn(renderer) to do frame processing and 3D rendering, respectively.
-
-			@param video Video image to use as scene background. Defaults to this.image
-		*/
   ARController.prototype.createThreeScene = function (video) {
     video = video || this.image;
     this.setupThree();
 
-    // To display the video, first create a texture from it.
+    // ios的safari如果video没有显示在dom上(包括display:none或者没appendChild到body的情况)，则videoTexture不会渲染
     document.body.appendChild(video);
-    video.style.position = 'absolute';
+    video.style.position = "absolute";
 
+    let videoTex = new THREE.VideoTexture(video);
+    videoTex.minFilter = THREE.LinearFilter;
+    // 取消读取纹理时默认的左右颠倒行为
+    videoTex.flipY = false;
 
-    // var videoTex = new THREE.Texture(video);
+    let plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide }));
+    plane.material.depthTest = false;
+    plane.material.depthWrite = false;
 
-    // videoTex.minFilter = THREE.LinearFilter;
-    // videoTex.flipY = false;
+    // webgl的uv坐标和图片的像素坐标是上下颠倒的，将相机上设置为-1，下设置为1来反转
+    let videoCamera = new THREE.OrthographicCamera(-1, 1, -1, 1, -1, 1);
+    let videoScene = new THREE.Scene();
+    videoScene.add(plane);
+    videoScene.add(videoCamera);
 
-    // // Then create a plane textured with the video.
-    // var plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide }));
+    // 当artoolkit检测到为portrait模式(肖像模式，可理解为手机竖屏的情况)，会将画布旋转来让相机正常工作(因为此时video会自动长宽对调，但库提供的是640*480的相机内参)，相机平面也需要旋转来匹配
+    if (this.orientation === "portrait") {
+      plane.rotation.z = Math.PI / 2;
+    }
 
-    // // The video plane shouldn't care about the z-buffer.
-    // plane.material.depthTest = false;
-    // plane.material.depthWrite = false;
-
-    // // Create a camera and a scene for the video plane and
-    // // add the camera and the video plane to the scene.
-    // var videoCamera = new THREE.OrthographicCamera(-1, 1, -1, 1, -1, 1);
-    // var videoScene = new THREE.Scene();
-    // videoScene.add(plane);
-    // videoScene.add(videoCamera);
-
-    // if (this.orientation === "portrait") {
-    //   plane.rotation.z = Math.PI / 2;
-    // }
-
-    var scene = new THREE.Scene();
-    var camera = new THREE.Camera();
+    let scene = new THREE.Scene();
+    let camera = new THREE.Camera();
     camera.matrixAutoUpdate = false;
     setProjectionMatrix(camera.projectionMatrix, this.getCameraMatrix());
 
     scene.add(camera);
 
-    var self = this;
+    let self = this;
 
     return {
       scene: scene,
-      // videoScene: videoScene,
       camera: camera,
-      // videoCamera: videoCamera,
-
+      videoScene: videoScene,
+      videoCamera: videoCamera,
       arController: this,
-
       video: video,
-
+      // 先将所有的markerRoot设置为不可见，如果检测到则设置为可见
       process: function () {
-        for (var i in self.threePatternMarkers) {
+        for (let i in self.threePatternMarkers) {
           self.threePatternMarkers[i].visible = false;
         }
-        for (var i in self.threeNFTMarkers) {
+        for (let i in self.threeNFTMarkers) {
           self.threeNFTMarkers[i].visible = false;
         }
-        for (var i in self.threeBarcodeMarkers) {
+        for (let i in self.threeBarcodeMarkers) {
           self.threeBarcodeMarkers[i].visible = false;
         }
-        for (var i in self.threeMultiMarkers) {
+        for (let i in self.threeMultiMarkers) {
           self.threeMultiMarkers[i].visible = false;
-          for (var j = 0; j < self.threeMultiMarkers[i].markers.length; j++) {
+          for (let j = 0; j < self.threeMultiMarkers[i].markers.length; j++) {
             if (self.threeMultiMarkers[i].markers[j]) {
               self.threeMultiMarkers[i].markers[j].visible = false;
             }
@@ -123,120 +90,68 @@ const extendARController = function () {
         // 调用原生的process方法，检测标记，检测到会触发getMarker事件
         self.process(video);
       },
+
+      renderOn: function (renderer) {
+        videoTex.needsUpdate = true;
+
+        let ac = renderer.autoClear;
+        renderer.autoClear = false;
+        renderer.clear();
+        renderer.render(this.videoScene, this.videoCamera);
+        renderer.render(this.scene, this.camera);
+        renderer.autoClear = ac;
+      },
     };
   };
 
-  /**
-			Creates a Three.js marker Object3D for the given marker UID.
-			The marker Object3D tracks the marker pattern when it's detected in the video.
-
-			Use this after a successful artoolkit.loadMarker call:
-
-			arController.loadMarker('/bin/Data/patt.hiro', function(markerUID) {
-				var markerRoot = arController.createThreeMarker(markerUID);
-				markerRoot.add(myFancyHiroModel);
-				arScene.scene.add(markerRoot);
-			});
-
-			@param {number} markerUID The UID of the marker to track.
-			@param {number} markerWidth The width of the marker, defaults to 1.
-			@return {THREE.Object3D} Three.Object3D that tracks the given marker.
-		*/
   ARController.prototype.createThreeMarker = function (markerUID, markerWidth) {
     this.setupThree();
-    var obj = new THREE.Object3D();
+    let obj = new THREE.Object3D();
     obj.markerTracker = this.trackPatternMarkerId(markerUID, markerWidth);
     obj.matrixAutoUpdate = false;
     this.threePatternMarkers[markerUID] = obj;
     return obj;
   };
 
-  /**
-			Creates a Three.js marker Object3D for the given NFT marker UID.
-			The marker Object3D tracks the NFT marker when it's detected in the video.
-
-			Use this after a successful artoolkit.loadNFTMarker call:
-
-			arController.loadNFTMarker('DataNFT/pinball', function(markerUID) {
-				var markerRoot = arController.createThreeNFTMarker(markerUID);
-				markerRoot.add(myFancyModel);
-				arScene.scene.add(markerRoot);
-			});
-
-			@param {number} markerUID The UID of the marker to track.
-			@param {number} markerWidth The width of the marker, defaults to 1.
-			@return {THREE.Object3D} Three.Object3D that tracks the given marker.
-		*/
   ARController.prototype.createThreeNFTMarker = function (markerUID, markerWidth) {
     this.setupThree();
-    var obj = new THREE.Object3D();
+    let obj = new THREE.Object3D();
     obj.markerTracker = this.trackNFTMarkerId(markerUID, markerWidth);
     obj.matrixAutoUpdate = false;
     this.threeNFTMarkers[markerUID] = obj;
     return obj;
   };
 
-  /**
-			Creates a Three.js marker Object3D for the given multimarker UID.
-			The marker Object3D tracks the multimarker when it's detected in the video.
-
-			Use this after a successful arController.loadMarker call:
-
-			arController.loadMultiMarker('/bin/Data/multi-barcode-4x3.dat', function(markerUID) {
-				var markerRoot = arController.createThreeMultiMarker(markerUID);
-				markerRoot.add(myFancyMultiMarkerModel);
-				arScene.scene.add(markerRoot);
-			});
-
-			@param {number} markerUID The UID of the marker to track.
-			@return {THREE.Object3D} Three.Object3D that tracks the given marker.
-		*/
   ARController.prototype.createThreeMultiMarker = function (markerUID) {
     this.setupThree();
-    var obj = new THREE.Object3D();
+    let obj = new THREE.Object3D();
     obj.matrixAutoUpdate = false;
     obj.markers = [];
     this.threeMultiMarkers[markerUID] = obj;
     return obj;
   };
 
-  /**
-			Creates a Three.js marker Object3D for the given barcode marker UID.
-			The marker Object3D tracks the marker pattern when it's detected in the video.
-
-			var markerRoot20 = arController.createThreeBarcodeMarker(20);
-			markerRoot20.add(myFancyNumber20Model);
-			arScene.scene.add(markerRoot20);
-
-			var markerRoot5 = arController.createThreeBarcodeMarker(5);
-			markerRoot5.add(myFancyNumber5Model);
-			arScene.scene.add(markerRoot5);
-
-			@param {number} markerUID The UID of the barcode marker to track.
-			@param {number} markerWidth The width of the marker, defaults to 1.
-			@return {THREE.Object3D} Three.Object3D that tracks the given marker.
-		*/
   ARController.prototype.createThreeBarcodeMarker = function (markerUID, markerWidth) {
     this.setupThree();
-    var obj = new THREE.Object3D();
+    let obj = new THREE.Object3D();
     obj.markerTracker = this.trackBarcodeMarkerId(markerUID, markerWidth);
     obj.matrixAutoUpdate = false;
     this.threeBarcodeMarkers[markerUID] = obj;
     return obj;
   };
 
+  // 初始化所有的标记检测监听器，只需执行一次
+  let ifSetup = false;
   ARController.prototype.setupThree = function () {
-    if (this.THREE_JS_ENABLED) {
+    if (ifSetup) {
       return;
     }
-    this.THREE_JS_ENABLED = true;
+    ifSetup = true;
 
-    /*
-				Listen to getMarker events to keep track of Three.js markers.
-			*/
     this.addEventListener("getMarker", function (ev) {
-      var marker = ev.data.marker;
-      var obj;
+      let marker = ev.data.marker;
+      let obj;
+
       if (ev.data.type === artoolkit.PATTERN_MARKER) {
         obj = this.threePatternMarkers[marker.idPatt];
       } else if (ev.data.type === artoolkit.BARCODE_MARKER) {
@@ -248,12 +163,13 @@ const extendARController = function () {
       }
     });
 
-    /*
-				Listen to getNFTMarker events to keep track of Three.js markers.
-			*/
+    this.addEventListener("lostMarker", function (ev) {
+      console.log('lost')
+    });
+
     this.addEventListener("getNFTMarker", function (ev) {
-      var marker = ev.data.marker;
-      var obj;
+      let marker = ev.data.marker;
+      let obj;
 
       console.log("Found NFT marker", marker, obj);
 
@@ -265,12 +181,9 @@ const extendARController = function () {
       }
     });
 
-    /*
-				Listen to lostNFTMarker events to keep track of Three.js markers.
-			*/
     this.addEventListener("lostNFTMarker", function (ev) {
-      var marker = ev.data.marker;
-      var obj;
+      let marker = ev.data.marker;
+      let obj;
 
       console.log("Lost NFT marker", marker, obj);
 
@@ -278,66 +191,40 @@ const extendARController = function () {
 
       if (obj) {
         obj.matrix.fromArray(ev.data.matrixGL_RH);
-
-        // TODO make it maybe more stable, making the object not visible
-        // only after some ms of lost tracking?
         obj.visible = false;
       }
     });
 
-    /*
-				Listen to getMultiMarker events to keep track of Three.js multimarkers.
-			*/
     this.addEventListener("getMultiMarker", function (ev) {
-      var obj = this.threeMultiMarkers[ev.data.multiMarkerId];
+      let obj = this.threeMultiMarkers[ev.data.multiMarkerId];
       if (obj) {
         obj.matrix.fromArray(ev.data.matrixGL_RH);
         obj.visible = true;
       }
     });
 
-    /*
-				Listen to getMultiMarkerSub events to keep track of Three.js multimarker submarkers.
-			*/
     this.addEventListener("getMultiMarkerSub", function (ev) {
-      var marker = ev.data.multiMarkerId;
-      var subMarkerID = ev.data.markerIndex;
-      var subMarker = ev.data.marker;
-      var obj = this.threeMultiMarkers[marker];
+      let marker = ev.data.multiMarkerId;
+      let subMarkerID = ev.data.markerIndex;
+      let subMarker = ev.data.marker;
+      let obj = this.threeMultiMarkers[marker];
       if (obj && obj.markers && obj.markers[subMarkerID]) {
-        var sub = obj.markers[subMarkerID];
+        let sub = obj.markers[subMarkerID];
         sub.matrix.fromArray(ev.data.matrixGL_RH);
         sub.visible = subMarker.visible >= 0;
       }
     });
 
-    /**
-				Index of Three.js pattern markers, maps markerID -> THREE.Object3D.
-			*/
     this.threePatternMarkers = {};
-
-    /**
-				Index of Three.js NFT markers, maps markerID -> THREE.Object3D.
-			*/
     this.threeNFTMarkers = {};
-
-    /**
-				Index of Three.js barcode markers, maps markerID -> THREE.Object3D.
-			*/
     this.threeBarcodeMarkers = {};
-
-    /**
-				Index of Three.js multimarkers, maps markerID -> THREE.Object3D.
-			*/
     this.threeMultiMarkers = {};
   };
 
   return ARController;
 };
-/**
- * Helper Method for Three.js compatibility
- */
-var setProjectionMatrix = function (projectionMatrix, value) {
+
+ const setProjectionMatrix = function (projectionMatrix, value) {
   if (typeof projectionMatrix.elements.set === "function") {
     projectionMatrix.elements.set(value);
   } else {
