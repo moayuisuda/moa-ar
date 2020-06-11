@@ -75,8 +75,8 @@ function init() {
       // 加载标记，加载完毕会得到一个标记id，用这个id生成一个会自动根据标记变化矩阵的根元素，用这个根元素来装其他的元素
       function loadController() {
         return new Promise((resolve) => {
+          // 标记文件对应"./data/markers.jpg"图片
           arController.loadMultiMarker("./data/markers.mrk", function (markerId) {
-            // Create an object that tracks the marker transform.
             let markerRoot = arController.createThreeMultiMarker(markerId);
             resolve(markerRoot);
           });
