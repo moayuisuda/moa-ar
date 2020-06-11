@@ -1,5 +1,5 @@
-/* THREE.js ARToolKit integration */
-import * as THREE from "three";
+/* js ARToolKit integration */
+import { PlaneBufferGeometry, MeshBasicMaterial, OrthographicCamera, Scene, Camera, Object3D, LinearFilter, VideoTexture, Mesh, BackSide } from "three";
 
 // 主函数同来拓展artoolkit的ARController方法
 const extendARController = function () {
@@ -31,18 +31,18 @@ const extendARController = function () {
     document.body.appendChild(video);
     video.style.position = "absolute";
 
-    let videoTex = new THREE.VideoTexture(video);
-    videoTex.minFilter = THREE.LinearFilter;
+    let videoTex = new VideoTexture(video);
+    videoTex.minFilter = LinearFilter;
     // 取消读取纹理时默认的左右颠倒行为
     videoTex.flipY = false;
 
-    let plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide }));
+    let plane = new Mesh(new PlaneBufferGeometry(2, 2), new MeshBasicMaterial({ map: videoTex, side: BackSide }));
     plane.material.depthTest = false;
     plane.material.depthWrite = false;
 
     // webgl的uv坐标和图片的像素坐标是上下颠倒的，将相机上设置为-1，下设置为1来反转
-    let videoCamera = new THREE.OrthographicCamera(-1, 1, -1, 1, -1, 1);
-    let videoScene = new THREE.Scene();
+    let videoCamera = new OrthographicCamera(-1, 1, -1, 1, -1, 1);
+    let videoScene = new Scene();
     videoScene.add(plane);
     videoScene.add(videoCamera);
 
@@ -51,8 +51,8 @@ const extendARController = function () {
       plane.rotation.z = Math.PI / 2;
     }
 
-    let scene = new THREE.Scene();
-    let camera = new THREE.Camera();
+    let scene = new Scene();
+    let camera = new Camera();
     camera.matrixAutoUpdate = false;
     setProjectionMatrix(camera.projectionMatrix, this.getCameraMatrix());
 
@@ -106,7 +106,7 @@ const extendARController = function () {
 
   ARController.prototype.createThreeMarker = function (markerUID, markerWidth) {
     this.setupThree();
-    let obj = new THREE.Object3D();
+    let obj = new Object3D();
     obj.markerTracker = this.trackPatternMarkerId(markerUID, markerWidth);
     obj.matrixAutoUpdate = false;
     this.threePatternMarkers[markerUID] = obj;
@@ -115,7 +115,7 @@ const extendARController = function () {
 
   ARController.prototype.createThreeNFTMarker = function (markerUID, markerWidth) {
     this.setupThree();
-    let obj = new THREE.Object3D();
+    let obj = new Object3D();
     obj.markerTracker = this.trackNFTMarkerId(markerUID, markerWidth);
     obj.matrixAutoUpdate = false;
     this.threeNFTMarkers[markerUID] = obj;
@@ -124,7 +124,7 @@ const extendARController = function () {
 
   ARController.prototype.createThreeMultiMarker = function (markerUID) {
     this.setupThree();
-    let obj = new THREE.Object3D();
+    let obj = new Object3D();
     obj.matrixAutoUpdate = false;
     obj.markers = [];
     this.threeMultiMarkers[markerUID] = obj;
@@ -133,7 +133,7 @@ const extendARController = function () {
 
   ARController.prototype.createThreeBarcodeMarker = function (markerUID, markerWidth) {
     this.setupThree();
-    let obj = new THREE.Object3D();
+    let obj = new Object3D();
     obj.markerTracker = this.trackBarcodeMarkerId(markerUID, markerWidth);
     obj.matrixAutoUpdate = false;
     this.threeBarcodeMarkers[markerUID] = obj;
@@ -164,7 +164,7 @@ const extendARController = function () {
     });
 
     this.addEventListener("lostMarker", function (ev) {
-      console.log('lost')
+      console.log("lost");
     });
 
     this.addEventListener("getNFTMarker", function (ev) {
@@ -224,7 +224,7 @@ const extendARController = function () {
   return ARController;
 };
 
- const setProjectionMatrix = function (projectionMatrix, value) {
+const setProjectionMatrix = function (projectionMatrix, value) {
   if (typeof projectionMatrix.elements.set === "function") {
     projectionMatrix.elements.set(value);
   } else {

@@ -2,9 +2,16 @@
  * @author Don McCurdy / https://www.donmccurdy.com
  */
 
-THREE.DRACOLoader = function ( manager ) {
+import {
+	BufferAttribute,
+	BufferGeometry,
+	FileLoader,
+	Loader
+} from "three";
 
-	THREE.Loader.call( this, manager );
+var DRACOLoader = function ( manager ) {
+
+	Loader.call( this, manager );
 
 	this.decoderPath = '';
 	this.decoderConfig = {};
@@ -31,9 +38,9 @@ THREE.DRACOLoader = function ( manager ) {
 
 };
 
-THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototype ), {
+DRACOLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
-	constructor: THREE.DRACOLoader,
+	constructor: DRACOLoader,
 
 	setDecoderPath: function ( path ) {
 
@@ -82,7 +89,7 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 
 	load: function ( url, onLoad, onProgress, onError ) {
 
-		var loader = new THREE.FileLoader( this.manager );
+		var loader = new FileLoader( this.manager );
 
 		loader.setPath( this.path );
 		loader.setResponseType( 'arraybuffer' );
@@ -145,9 +152,9 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 
 		// Check for an existing task using this buffer. A transferred buffer cannot be transferred
 		// again from this thread.
-		if ( THREE.DRACOLoader.taskCache.has( buffer ) ) {
+		if ( DRACOLoader.taskCache.has( buffer ) ) {
 
-			var cachedTask = THREE.DRACOLoader.taskCache.get( buffer );
+			var cachedTask = DRACOLoader.taskCache.get( buffer );
 
 			if ( cachedTask.key === taskKey ) {
 
@@ -197,8 +204,10 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 			.then( ( message ) => this._createGeometry( message.geometry ) );
 
 		// Remove task from the task list.
+		// Note: replaced '.finally()' with '.catch().then()' block - iOS 11 support (#19416)
 		geometryPending
-			.finally( () => {
+			.catch( () => true )
+			.then( () => {
 
 				if ( worker && taskID ) {
 
@@ -211,7 +220,7 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 			} );
 
 		// Cache the task result.
-		THREE.DRACOLoader.taskCache.set( buffer, {
+		DRACOLoader.taskCache.set( buffer, {
 
 			key: taskKey,
 			promise: geometryPending
@@ -224,11 +233,11 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 
 	_createGeometry: function ( geometryData ) {
 
-		var geometry = new THREE.BufferGeometry();
+		var geometry = new BufferGeometry();
 
 		if ( geometryData.index ) {
 
-			geometry.setIndex( new THREE.BufferAttribute( geometryData.index.array, 1 ) );
+			geometry.setIndex( new BufferAttribute( geometryData.index.array, 1 ) );
 
 		}
 
@@ -239,7 +248,7 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 			var array = attribute.array;
 			var itemSize = attribute.itemSize;
 
-			geometry.setAttribute( name, new THREE.BufferAttribute( array, itemSize ) );
+			geometry.setAttribute( name, new BufferAttribute( array, itemSize ) );
 
 		}
 
@@ -249,7 +258,7 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 
 	_loadLibrary: function ( url, responseType ) {
 
-		var loader = new THREE.FileLoader( this.manager );
+		var loader = new FileLoader( this.manager );
 		loader.setPath( this.decoderPath );
 		loader.setResponseType( responseType );
 
@@ -298,7 +307,7 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 
 				}
 
-				var fn = THREE.DRACOLoader.DRACOWorker.toString();
+				var fn = DRACOLoader.DRACOWorker.toString();
 
 				var body = [
 					'/* draco decoder */',
@@ -404,7 +413,7 @@ THREE.DRACOLoader.prototype = Object.assign( Object.create( THREE.Loader.prototy
 
 /* WEB WORKER */
 
-THREE.DRACOLoader.DRACOWorker = function () {
+DRACOLoader.DRACOWorker = function () {
 
 	var decoderConfig;
 	var decoderPending;
@@ -645,34 +654,36 @@ THREE.DRACOLoader.DRACOWorker = function () {
 
 };
 
-THREE.DRACOLoader.taskCache = new WeakMap();
+DRACOLoader.taskCache = new WeakMap();
 
 /** Deprecated static methods */
 
 /** @deprecated */
-THREE.DRACOLoader.setDecoderPath = function () {
+DRACOLoader.setDecoderPath = function () {
 
 	console.warn( 'THREE.DRACOLoader: The .setDecoderPath() method has been removed. Use instance methods.' );
 
 };
 
 /** @deprecated */
-THREE.DRACOLoader.setDecoderConfig = function () {
+DRACOLoader.setDecoderConfig = function () {
 
 	console.warn( 'THREE.DRACOLoader: The .setDecoderConfig() method has been removed. Use instance methods.' );
 
 };
 
 /** @deprecated */
-THREE.DRACOLoader.releaseDecoderModule = function () {
+DRACOLoader.releaseDecoderModule = function () {
 
 	console.warn( 'THREE.DRACOLoader: The .releaseDecoderModule() method has been removed. Use instance methods.' );
 
 };
 
 /** @deprecated */
-THREE.DRACOLoader.getDecoderModule = function () {
+DRACOLoader.getDecoderModule = function () {
 
 	console.warn( 'THREE.DRACOLoader: The .getDecoderModule() method has been removed. Use instance methods.' );
 
 };
+
+export { DRACOLoader };
