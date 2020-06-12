@@ -1,5 +1,19 @@
 import extend from "./third/ARHelper";
-import { WebGLRenderer, Mesh, BoxGeometry, MeshLambertMaterial, MeshNormalMaterial, AnimationMixer, Clock, BackSide } from "three";
+import {
+  WebGLRenderer,
+  Mesh,
+  BoxGeometry,
+  MeshNormalMaterial,
+  AnimationMixer,
+  Clock,
+  BackSide,
+  AxesHelper,
+  MeshLambertMaterial,
+  MeshBasicMaterial,
+  PointLight,
+  SphereGeometry,
+  PointLightHelper,
+} from "three";
 import { GLTFLoader } from "./third/GLTFLoader.js";
 import { DRACOLoader } from "./third/DRACOLoader.js";
 
@@ -11,7 +25,6 @@ function init() {
     // 现在的浏览器兼容性很难用webrtc拿到想要的分辨率，一般是手动全屏
     cameraParam: "./data/camera_para.dat",
     onSuccess: function (arScene, arController) {
-
       // 竖屏适配
       document.body.className = arController.orientation;
       let renderer = new WebGLRenderer({ antialias: true });
@@ -59,25 +72,32 @@ function init() {
 
               mixer = new AnimationMixer(model);
               mixer.clipAction(gltf.animations[0]).play();
+
               resolve(model);
             },
-            p => {
+            (p) => {
               console.log(p);
             },
             function (e) {
               console.error(e);
             }
           );
+          // var geometry = new SphereGeometry(50, 32, 32);
+          // var material = new MeshLambertMaterial({ color: 0xffff00 });
+          // model = new Mesh(geometry, material);
+
+          // resolve(model);
         });
       }
 
-      let greenCube = new Mesh(new BoxGeometry(100, 100, 100), new MeshLambertMaterial({ color: 0xffffff }));
       // 加载标记，加载完毕会得到一个标记id，用这个id生成一个会自动根据标记变化矩阵的根元素，用这个根元素来装其他的元素
       function loadController() {
         return new Promise((resolve) => {
           // 标记文件对应"./data/markers.jpg"图片
           arController.loadMultiMarker("./data/markers.mrk", function (markerId) {
             let markerRoot = arController.createThreeMultiMarker(markerId);
+            let axesHelper = new AxesHelper(50);
+            markerRoot.add(axesHelper);
             resolve(markerRoot);
           });
         });
@@ -95,36 +115,42 @@ function init() {
       let rotationV = 0;
       let rotationTarget = 0;
       let tick = function () {
-        // 检测标记并根据标记更新根元素的矩阵，并让markerroot不可见
+        // 检测标记并根据标记更新根元素的变化矩阵
         arScene.process();
 
         let delta = clock.getDelta();
-        mixer.update(delta);
+        // mixer.update(delta);
 
         // 简单交互
-        rotationV += (rotationTarget - model.rotation.z) * 0.05;
-        model.rotation.z += rotationV;
+        rotationV += (rotationTarget - model.rotation.y) * 0.05;
+        model.rotation.y += rotationV;
         rotationV *= 0.8;
-
         // 更新画布
         arScene.renderOn(renderer);
         requestAnimationFrame(tick);
       };
 
       // 动画时钟
+      let offset = [0, 0, 50];
       let clock;
-      // 默认模型偏移，让模型在标记中间
-      const offset = [100, 100, 50];
+      // 模型和标记都加载完毕
       Promise.all([loadController(), loadModel()]).then((res) => {
         const [markerRoot, model] = res;
 
-        let sphere = new Mesh(new BoxGeometry(100, 100, 100), new MeshNormalMaterial({ transparent: false, side: BackSide }));
-        sphere.position.set(...offset);
+        var light = new PointLight(0xffffff);
+        light.position.set(400, 400, 400);
+        arScene.scene.add(light, new PointLightHelper(light, 50));
+
+        var light = new PointLight(0xff8800);
+        light.position.set(-400, -200, -300);
+        arScene.scene.add(light, new PointLightHelper(light, 50));
+
+        let box = new Mesh(new BoxGeometry(100, 100, 100), new MeshLambertMaterial({ color: 0xffffff, side: BackSide }));
         model.position.set(...offset);
+        box.position.set(...offset);
 
         arScene.scene.add(markerRoot);
-        markerRoot.add(model, sphere);
-
+        markerRoot.add(model);
         clock = new Clock();
         tick();
       });

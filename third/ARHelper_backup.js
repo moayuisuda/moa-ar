@@ -29,7 +29,7 @@ const extendARController = function () {
 
     // ios的safari如果video没有显示在dom上(包括display:none或者没appendChild到body的情况)，则videoTexture不会渲染
     document.body.appendChild(video);
-    video.style.position = "absolute";
+    // video.style.position = "absolute";
 
     let videoTex = new VideoTexture(video);
     videoTex.minFilter = LinearFilter;
@@ -97,7 +97,7 @@ const extendARController = function () {
         let ac = renderer.autoClear;
         renderer.autoClear = false;
         renderer.clear();
-        renderer.render(this.videoScene, this.videoCamera);
+        // renderer.render(this.videoScene, this.videoCamera);
         renderer.render(this.scene, this.camera);
         renderer.autoClear = ac;
       },
@@ -113,12 +113,30 @@ const extendARController = function () {
     return obj;
   };
 
+  ARController.prototype.createThreeNFTMarker = function (markerUID, markerWidth) {
+    this.setupThree();
+    let obj = new Object3D();
+    obj.markerTracker = this.trackNFTMarkerId(markerUID, markerWidth);
+    obj.matrixAutoUpdate = false;
+    this.threeNFTMarkers[markerUID] = obj;
+    return obj;
+  };
+
   ARController.prototype.createThreeMultiMarker = function (markerUID) {
     this.setupThree();
     let obj = new Object3D();
     obj.matrixAutoUpdate = false;
     obj.markers = [];
     this.threeMultiMarkers[markerUID] = obj;
+    return obj;
+  };
+
+  ARController.prototype.createThreeBarcodeMarker = function (markerUID, markerWidth) {
+    this.setupThree();
+    let obj = new Object3D();
+    obj.markerTracker = this.trackBarcodeMarkerId(markerUID, markerWidth);
+    obj.matrixAutoUpdate = false;
+    this.threeBarcodeMarkers[markerUID] = obj;
     return obj;
   };
 
@@ -136,6 +154,8 @@ const extendARController = function () {
 
       if (ev.data.type === artoolkit.PATTERN_MARKER) {
         obj = this.threePatternMarkers[marker.idPatt];
+      } else if (ev.data.type === artoolkit.BARCODE_MARKER) {
+        obj = this.threeBarcodeMarkers[marker.idMatrix];
       }
       if (obj) {
         setProjectionMatrix(obj.matrix, ev.data.matrixGL_RH);
@@ -145,6 +165,34 @@ const extendARController = function () {
 
     this.addEventListener("lostMarker", function (ev) {
       console.log("lost");
+    });
+
+    this.addEventListener("getNFTMarker", function (ev) {
+      let marker = ev.data.marker;
+      let obj;
+
+      console.log("Found NFT marker", marker, obj);
+
+      obj = this.threeNFTMarkers[marker.id];
+
+      if (obj) {
+        obj.matrix.fromArray(ev.data.matrixGL_RH);
+        obj.visible = true;
+      }
+    });
+
+    this.addEventListener("lostNFTMarker", function (ev) {
+      let marker = ev.data.marker;
+      let obj;
+
+      console.log("Lost NFT marker", marker, obj);
+
+      obj = this.threeNFTMarkers[marker.id];
+
+      if (obj) {
+        obj.matrix.fromArray(ev.data.matrixGL_RH);
+        obj.visible = false;
+      }
     });
 
     // 用矩阵方差来确定位置，target为目标位置的矩阵
@@ -166,10 +214,10 @@ const extendARController = function () {
       13: -127.09513854980469,
       14: -454.8747253417969,
       15: 1,
-    };
+    }
     function variance(source, target) {
       let sum = 0;
-      for (let i in source) {
+      for(let i in source) {
         sum += Math.pow(source[i] - target[i], 2);
       }
 
@@ -183,12 +231,26 @@ const extendARController = function () {
 
         let offset = variance(ev.data.matrixGL_RH, target);
         console.log(offset);
-        if (offset < threshold) alert("就是这个位置！");
+        if(offset < threshold) alert('就是这个位置！');
         obj.visible = true;
       }
     });
 
+    this.addEventListener("getMultiMarkerSub", function (ev) {
+      let marker = ev.data.multiMarkerId;
+      let subMarkerID = ev.data.markerIndex;
+      let subMarker = ev.data.marker;
+      let obj = this.threeMultiMarkers[marker];
+      if (obj && obj.markers && obj.markers[subMarkerID]) {
+        let sub = obj.markers[subMarkerID];
+        sub.matrix.fromArray(ev.data.matrixGL_RH);
+        sub.visible = subMarker.visible >= 0;
+      }
+    });
+
     this.threePatternMarkers = {};
+    this.threeNFTMarkers = {};
+    this.threeBarcodeMarkers = {};
     this.threeMultiMarkers = {};
   };
 
