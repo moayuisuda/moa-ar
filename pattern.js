@@ -3,16 +3,14 @@ import {
   WebGLRenderer,
   Mesh,
   BoxGeometry,
-  MeshNormalMaterial,
   AnimationMixer,
   Clock,
   BackSide,
   AxesHelper,
   MeshLambertMaterial,
-  MeshBasicMaterial,
   PointLight,
-  SphereGeometry,
   PointLightHelper,
+  Box3
 } from "three";
 import { GLTFLoader } from "./third/GLTFLoader.js";
 import { DRACOLoader } from "./third/DRACOLoader.js";
@@ -65,10 +63,14 @@ function init() {
             "data/LittlestTokyo.glb",
             function (gltf) {
               model = gltf.scene;
-              model.position.z = 50;
-              model.position.y = 100;
-              model.position.x = 100;
-              model.scale.set(0.1, 0.1, 0.1);
+              model.rotateX(90 * Math.PI / 180);
+              var box = new Box3().setFromObject( model );
+              const dis = {
+                x: box.max.x - box.min.x,
+                y: box.max.y - box.min.y,
+                z: box.max.z - box.min.z
+              }
+              model.scale.set(5 / dis.x, 5 / dis.y, 5 / dis.y);
 
               mixer = new AnimationMixer(model);
               mixer.clipAction(gltf.animations[0]).play();
@@ -96,6 +98,15 @@ function init() {
           // 标记文件对应"./data/markers.jpg"图片
           arController.loadMultiMarker("./data/markers.mrk", function (markerId) {
             let markerRoot = arController.createThreeMultiMarker(markerId);
+            arController.eventMap.set(markerRoot, [
+              {
+                target: {"0":0.998875081539154,"1":-0.03429223969578743,"2":0.03275034949183464,"3":0,"4":0.03305353969335556,"5":0.9987444281578064,"6":0.037643130868673325,"7":0,"8":-0.03400009870529175,"9":-0.03651827201247215,"10":0.9987544417381287,"11":0,"12":0.22713792324066162,"13":-0.9001671671867371,"14":-6.122226715087891,"15":1},
+                threshold: 0.01,
+                cb: function() { 
+                  alert("it's there");
+                }
+              }
+            ]);
             let axesHelper = new AxesHelper(50);
             markerRoot.add(axesHelper);
             resolve(markerRoot);
@@ -119,7 +130,7 @@ function init() {
         arScene.process();
 
         let delta = clock.getDelta();
-        // mixer.update(delta);
+        mixer.update(delta);
 
         // 简单交互
         rotationV += (rotationTarget - model.rotation.y) * 0.05;
@@ -130,20 +141,22 @@ function init() {
         requestAnimationFrame(tick);
       };
 
+      let offset = [1, 1, 0.5];
       // 动画时钟
-      let offset = [0, 0, 50];
       let clock;
+      let markerRoot;
       // 模型和标记都加载完毕
       Promise.all([loadController(), loadModel()]).then((res) => {
-        const [markerRoot, model] = res;
+        markerRoot = res[0];
+        let model = res[1];
 
         var light = new PointLight(0xffffff);
-        light.position.set(400, 400, 400);
-        arScene.scene.add(light, new PointLightHelper(light, 50));
+        light.position.set(500, 500, 400);
+        arScene.scene.add(light, new PointLightHelper(light, 100));
 
         var light = new PointLight(0xff8800);
-        light.position.set(-400, -200, -300);
-        arScene.scene.add(light, new PointLightHelper(light, 50));
+        light.position.set(-300, -100, -300);
+        arScene.scene.add(light, new PointLightHelper(light, 100));
 
         let box = new Mesh(new BoxGeometry(100, 100, 100), new MeshLambertMaterial({ color: 0xffffff, side: BackSide }));
         model.position.set(...offset);

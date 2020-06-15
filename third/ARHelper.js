@@ -2,6 +2,8 @@
 import { PlaneBufferGeometry, MeshBasicMaterial, OrthographicCamera, Scene, Camera, Object3D, LinearFilter, VideoTexture, Mesh, BackSide } from "three";
 
 // 主函数同来拓展artoolkit的ARController方法
+const eventMap = new Map();
+
 const extendARController = function () {
   ARController.getUserMediaThreeScene = function (userConfig) {
     let config = {};
@@ -13,8 +15,8 @@ const extendARController = function () {
     // artoolkit的onSucess方法
     config.onSuccess = function (arController, arCameraParam) {
       let arScene = arController.createThreeScene();
-
       // 用户定义的onSucess方法
+      arController.eventMap = eventMap;
       onSuccess(arScene, arController, arCameraParam);
     };
 
@@ -147,26 +149,6 @@ const extendARController = function () {
       console.log("lost");
     });
 
-    // 用矩阵方差来确定位置，target为目标位置的矩阵
-    let threshold = 80;
-    let target = {
-      0: 0.9383494257926941,
-      1: -0.012972698546946049,
-      2: -0.34544476866722107,
-      3: 0,
-      4: 0.14616143703460693,
-      5: 0.9204674363136292,
-      6: 0.3624589741230011,
-      7: 0,
-      8: 0.3132685720920563,
-      9: -0.3906038701534271,
-      10: 0.8656162023544312,
-      11: 0,
-      12: -255.4723663330078,
-      13: -127.09513854980469,
-      14: -454.8747253417969,
-      15: 1,
-    };
     function variance(source, target) {
       let sum = 0;
       for (let i in source) {
@@ -178,12 +160,19 @@ const extendARController = function () {
 
     this.addEventListener("getMultiMarker", function (ev) {
       let obj = this.threeMultiMarkers[ev.data.multiMarkerId];
+      matrix = JSON.stringify(ev.data.matrixGL_RH);
       if (obj) {
         obj.matrix.fromArray(ev.data.matrixGL_RH);
 
-        let offset = variance(ev.data.matrixGL_RH, target);
-        console.log(offset);
-        if (offset < threshold) alert("就是这个位置！");
+        let events;
+        if(events = eventMap.get(obj)) {
+          for(let event of events) {
+            let offset = variance(ev.data.matrixGL_RH, event.target);
+            console.log(offset);
+            if (offset < event.threshold) event.cb();
+          }
+        }
+
         obj.visible = true;
       }
     });
@@ -194,6 +183,12 @@ const extendARController = function () {
 
   return ARController;
 };
+
+let matrix;
+let result = document.querySelector('.matrix_result');
+document.querySelector('.matrix').addEventListener('click', () => {
+  if(matrix) result.innerHTML = matrix;
+})
 
 const setProjectionMatrix = function (projectionMatrix, value) {
   if (typeof projectionMatrix.elements.set === "function") {
