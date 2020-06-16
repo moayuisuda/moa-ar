@@ -24,7 +24,7 @@ function init() {
     // 现在的浏览器兼容性很难用webrtc拿到想要的分辨率，一般是手动全屏
     cameraParam: "./data/camera_para.dat",
     onSuccess: function (arScene, arController) {
-      // 竖屏适配
+      // 竖屏全屏
       document.querySelector('.app').classList.add(arController.orientation);
       let renderer = new WebGLRenderer({ antialias: true });
       if (arController.orientation === "portrait") {
