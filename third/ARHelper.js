@@ -56,8 +56,6 @@ const extendARController = function () {
 
     scene.add(camera);
 
-    let self = this;
-
     return {
       scene: scene,
       camera: camera,
@@ -66,27 +64,27 @@ const extendARController = function () {
       arController: this,
       video: video,
       // 先将所有的markerRoot设置为不可见，如果检测到标记则设置为可见
-      process: function () {
-        for (let i in self.threePatternMarkers) {
-          self.threePatternMarkers[i].visible = false;
+      process: () => {
+        for (let i in this.threePatternMarkers) {
+          this.threePatternMarkers[i].visible = false;
         }
-        for (let i in self.threeNFTMarkers) {
-          self.threeNFTMarkers[i].visible = false;
+        for (let i in this.threeNFTMarkers) {
+          this.threeNFTMarkers[i].visible = false;
         }
-        for (let i in self.threeBarcodeMarkers) {
-          self.threeBarcodeMarkers[i].visible = false;
+        for (let i in this.threeBarcodeMarkers) {
+          this.threeBarcodeMarkers[i].visible = false;
         }
-        for (let i in self.threeMultiMarkers) {
-          self.threeMultiMarkers[i].visible = false;
-          for (let j = 0; j < self.threeMultiMarkers[i].markers.length; j++) {
-            if (self.threeMultiMarkers[i].markers[j]) {
-              self.threeMultiMarkers[i].markers[j].visible = false;
+        for (let i in this.threeMultiMarkers) {
+          this.threeMultiMarkers[i].visible = false;
+          for (let j = 0; j < this.threeMultiMarkers[i].markers.length; j++) {
+            if (this.threeMultiMarkers[i].markers[j]) {
+              this.threeMultiMarkers[i].markers[j].visible = false;
             }
           }
         }
 
         // 调用原生的process方法，检测标记，检测到会触发getMarker事件
-        self.process(video);
+        this.process(video);
       },
 
       renderOn: function (renderer) {
