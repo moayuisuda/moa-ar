@@ -1,17 +1,5 @@
 import extend from "./third/ARHelper";
-import {
-  WebGLRenderer,
-  Mesh,
-  BoxGeometry,
-  AnimationMixer,
-  Clock,
-  BackSide,
-  AxesHelper,
-  MeshLambertMaterial,
-  PointLight,
-  PointLightHelper,
-  Box3
-} from "three";
+import { WebGLRenderer, Mesh, BoxGeometry, AnimationMixer, Clock, BackSide, AxesHelper, MeshLambertMaterial, PointLight, PointLightHelper, Box3 } from "three";
 import { GLTFLoader } from "./third/GLTFLoader.js";
 import { DRACOLoader } from "./third/DRACOLoader.js";
 
@@ -19,13 +7,13 @@ import { DRACOLoader } from "./third/DRACOLoader.js";
 const ARController = extend();
 
 function init() {
-  const container = document.querySelector('.app');
-  ARController.getUserMediaThreeScene({
+  const container = document.querySelector(".app");
+  ARController.getUserMediaThreeScene(container, {
     // 现在的浏览器兼容性很难用webrtc拿到想要的分辨率，一般是手动全屏
     cameraParam: "./data/camera_para.dat",
     onSuccess: function (arScene, arController) {
       // 竖屏全屏
-      document.querySelector('.app').classList.add(arController.orientation);
+      document.querySelector(".app").classList.add(arController.orientation);
       let renderer = new WebGLRenderer({ antialias: true });
       if (arController.orientation === "portrait") {
         alert("portrait");
@@ -43,7 +31,7 @@ function init() {
       } else {
         alert("请旋转手机");
         renderer.setSize(arController.videoWidth, arController.videoHeight);
-        container.classList.add('desktop');
+        container.classList.add("desktop");
       }
 
       container.appendChild(renderer.domElement);
@@ -64,13 +52,13 @@ function init() {
             "data/LittlestTokyo.glb",
             function (gltf) {
               model = gltf.scene;
-              model.rotateX(90 * Math.PI / 180);
-              var box = new Box3().setFromObject( model );
+              model.rotateX((90 * Math.PI) / 180);
+              var box = new Box3().setFromObject(model);
               const dis = {
                 x: box.max.x - box.min.x,
                 y: box.max.y - box.min.y,
-                z: box.max.z - box.min.z
-              }
+                z: box.max.z - box.min.z,
+              };
               model.scale.set(5 / dis.x, 5 / dis.y, 5 / dis.y);
 
               mixer = new AnimationMixer(model);
@@ -101,12 +89,30 @@ function init() {
             let markerRoot = arController.createThreeMultiMarker(markerId);
             arController.eventMap.set(markerRoot, [
               {
-                target: {"0":0.998875081539154,"1":-0.03429223969578743,"2":0.03275034949183464,"3":0,"4":0.03305353969335556,"5":0.9987444281578064,"6":0.037643130868673325,"7":0,"8":-0.03400009870529175,"9":-0.03651827201247215,"10":0.9987544417381287,"11":0,"12":0.22713792324066162,"13":-0.9001671671867371,"14":-6.122226715087891,"15":1},
+                target: {
+                  "0": 0.998875081539154,
+                  "1": -0.03429223969578743,
+                  "2": 0.03275034949183464,
+                  "3": 0,
+                  "4": 0.03305353969335556,
+                  "5": 0.9987444281578064,
+                  "6": 0.037643130868673325,
+                  "7": 0,
+                  "8": -0.03400009870529175,
+                  "9": -0.03651827201247215,
+                  "10": 0.9987544417381287,
+                  "11": 0,
+                  "12": 0.22713792324066162,
+                  "13": -0.9001671671867371,
+                  "14": -6.122226715087891,
+                  "15": 1,
+                },
                 threshold: 0.01, // 方差误差范围
-                cb: function() {  // 回调
+                cb: function () {
+                  // 回调
                   alert("it's there");
-                }
-              }
+                },
+              },
             ]);
             let axesHelper = new AxesHelper(50);
             markerRoot.add(axesHelper);

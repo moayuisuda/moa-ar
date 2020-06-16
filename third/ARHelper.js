@@ -2,35 +2,31 @@
 import { PlaneBufferGeometry, MeshBasicMaterial, OrthographicCamera, Scene, Camera, Object3D, LinearFilter, VideoTexture, Mesh, BackSide } from "three";
 
 // 主函数同来拓展artoolkit的ARController方法
+
+// 用于事件注册的map
 const eventMap = new Map();
-
 const extendARController = function () {
-  ARController.getUserMediaThreeScene = function (userConfig) {
-    let config = {};
-    for (let i in userConfig) {
-      config[i] = userConfig[i];
-    }
+  ARController.getUserMediaThreeScene = function (container, userConfig) {
     let onSuccess = userConfig.onSuccess;
-
-    // artoolkit的onSucess方法
-    config.onSuccess = function (arController, arCameraParam) {
-      let arScene = arController.createThreeScene();
-      // 用户定义的onSucess方法
+    userConfig.onSuccess = function (arController, arCameraParam) {
+      let arScene = arController.createThreeScene(container);
       arController.eventMap = eventMap;
+      // 用户定义的onSucess方法
       onSuccess(arScene, arController, arCameraParam);
     };
 
-    // config作为artoolkit原生函数的配置参数传入
-    let video = this.getUserMediaARController(config);
+    // 作为artoolkit原生函数的配置参数传入
+    let video = this.getUserMediaARController(userConfig);
     return video;
   };
 
-  ARController.prototype.createThreeScene = function (video) {
-    video = video || this.image;
+  ARController.prototype.createThreeScene = function (container) {
+    let video = this.image;
     this.setupThree();
 
     // ios的safari如果video没有显示在dom上(包括display:none或者没appendChild到body的情况)，则videoTexture不会渲染
-    document.querySelector('.app').appendChild(video);
+    container.appendChild(video);
+    container.style.position = "relative";
     video.style.position = "absolute";
 
     let videoTex = new VideoTexture(video);
@@ -165,8 +161,8 @@ const extendARController = function () {
         obj.matrix.fromArray(ev.data.matrixGL_RH);
 
         let events;
-        if(events = eventMap.get(obj)) {
-          for(let event of events) {
+        if ((events = eventMap.get(obj))) {
+          for (let event of events) {
             let offset = variance(ev.data.matrixGL_RH, event.target);
             console.log(offset);
             if (offset < event.threshold) event.cb();
@@ -185,10 +181,10 @@ const extendARController = function () {
 };
 
 let matrix;
-let result = document.querySelector('.getMatrix_result');
-document.querySelector('.getMatrix_btn').addEventListener('click', () => {
-  if(matrix) result.innerHTML = matrix;
-})
+let result = document.querySelector(".getMatrix_result");
+document.querySelector(".getMatrix_btn").addEventListener("click", () => {
+  if (matrix) result.innerHTML = matrix;
+});
 
 const setProjectionMatrix = function (projectionMatrix, value) {
   if (typeof projectionMatrix.elements.set === "function") {

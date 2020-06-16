@@ -1,0 +1,22 @@
+html,
+body {
+  margin: 0;
+  box-sizing: border-box;
+}
+.portrait canvas {
+  transform-origin: 0 0;
+  transform: rotate(-90deg) translateX(-100%);
+}
+.desktop canvas {
+  transform: scale(-1, 1);
+}
+.getMatrix {
+  position: absolute;
+  z-index: 1;
+}
+.getMatrix_result {
+  background-color: white;
+  width: 170px;
+  word-break: break-all;
+  font-size: 12px;
+}
