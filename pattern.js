@@ -19,12 +19,13 @@ import { DRACOLoader } from "./third/DRACOLoader.js";
 const ARController = extend();
 
 function init() {
+  const container = document.querySelector('.app');
   ARController.getUserMediaThreeScene({
     // 现在的浏览器兼容性很难用webrtc拿到想要的分辨率，一般是手动全屏
     cameraParam: "./data/camera_para.dat",
     onSuccess: function (arScene, arController) {
       // 竖屏适配
-      document.body.className = arController.orientation;
+      document.querySelector('.app').classList.add(arController.orientation);
       let renderer = new WebGLRenderer({ antialias: true });
       if (arController.orientation === "portrait") {
         alert("portrait");
@@ -42,10 +43,10 @@ function init() {
       } else {
         alert("请旋转手机");
         renderer.setSize(arController.videoWidth, arController.videoHeight);
-        document.body.className += " desktop";
+        container.classList.add('desktop');
       }
 
-      document.body.appendChild(renderer.domElement);
+      container.appendChild(renderer.domElement);
 
       // 加载模型
       let dracoLoader = new DRACOLoader();
@@ -96,13 +97,13 @@ function init() {
       function loadController() {
         return new Promise((resolve) => {
           // 标记文件对应"./data/markers.jpg"图片
-          arController.loadMultiMarker("./data/markers.mrk", function (markerId) {
+          arController.loadMultiMarker("./data/markerSet.mrk", function (markerId) {
             let markerRoot = arController.createThreeMultiMarker(markerId);
             arController.eventMap.set(markerRoot, [
               {
                 target: {"0":0.998875081539154,"1":-0.03429223969578743,"2":0.03275034949183464,"3":0,"4":0.03305353969335556,"5":0.9987444281578064,"6":0.037643130868673325,"7":0,"8":-0.03400009870529175,"9":-0.03651827201247215,"10":0.9987544417381287,"11":0,"12":0.22713792324066162,"13":-0.9001671671867371,"14":-6.122226715087891,"15":1},
-                threshold: 0.01,
-                cb: function() { 
+                threshold: 0.01, // 方差误差范围
+                cb: function() {  // 回调
                   alert("it's there");
                 }
               }

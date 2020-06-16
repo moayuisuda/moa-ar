@@ -6,9 +6,10 @@
       html,
       body {
         margin: 0;
-        height: 100vh;
-        width: 100vw;
-        overflow: hidden;
+        box-sizing: border-box;
+      }
+      .app {
+        position: relative;
       }
       .portrait canvas {
         transform-origin: 0 0;
@@ -17,15 +18,25 @@
       .desktop canvas {
         transform: scale(-1, 1);
       }
-      .matrix_result {
+      .getMatrix {
+        position: absolute;
+        z-index: 1;
+      }
+      .getMatrix_result {
+        background-color: white;
+        width: 170px;
+        word-break: break-all;
         font-size: 12px;
       }
-    </style>  
+    </style>
   </head>
   <body>
-    <button class="matrix">get current matrix</button>
-    <p class="matrix_result"></p>
-    <h1 class="tip"></h1>
+    <div class="app">
+      <div class="getMatrix">
+        <button class="getMatrix_btn">get current matrix</button>
+        <p class="getMatrix_result"></p>
+      </div>
+    </div>
     <script src="./third/artoolkit.min.js"></script>
     <script src="./dist/pattern.js"></script>
   </body>

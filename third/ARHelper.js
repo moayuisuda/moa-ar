@@ -30,7 +30,7 @@ const extendARController = function () {
     this.setupThree();
 
     // ios的safari如果video没有显示在dom上(包括display:none或者没appendChild到body的情况)，则videoTexture不会渲染
-    document.body.appendChild(video);
+    document.querySelector('.app').appendChild(video);
     video.style.position = "absolute";
 
     let videoTex = new VideoTexture(video);
@@ -185,8 +185,8 @@ const extendARController = function () {
 };
 
 let matrix;
-let result = document.querySelector('.matrix_result');
-document.querySelector('.matrix').addEventListener('click', () => {
+let result = document.querySelector('.getMatrix_result');
+document.querySelector('.getMatrix_btn').addEventListener('click', () => {
   if(matrix) result.innerHTML = matrix;
 })
 
