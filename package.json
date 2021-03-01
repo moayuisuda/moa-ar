@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/moayuisuda/moa-ar#readme",
   "dependencies": {
-    "three": "^0.117.1"
+    "three": "^0.125.0"
   }
 }
